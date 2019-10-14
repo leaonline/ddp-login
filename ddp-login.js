@@ -1,4 +1,4 @@
-/* globals DDP */
+/* globals DDP localStorage */
 DDP = DDP || {}
 
 const once = fct => {
@@ -11,7 +11,7 @@ const once = fct => {
 }
 
 function loginWithLea (connection, { accessToken }, callback = () => {}) {
-
+  const url = connection._stream.rawUrl
   let reconnected = false
   let onceUserCallback = once(callback)
 
@@ -39,6 +39,9 @@ function loginWithLea (connection, { accessToken }, callback = () => {}) {
       onceUserCallback(error || new Error('No result from call to login'), null)
     } else {
       // Logged in
+      localStorage.setItem(`${url}/lea/loginToken`, result.token)
+      localStorage.setItem(`${url}/lea/loginTokenExpires`, result.tokenExpires)
+      localStorage.setItem(`${url}/lea/userId`, result.id)
       connection.setUserId(result.id)
       onceUserCallback(null, result)
     }
@@ -51,12 +54,17 @@ function loginWithLea (connection, { accessToken }, callback = () => {}) {
     }, loggedInAndDataReadyCallback)
   }
 
-  callLoginMethod([ { lea: true, accessToken } ])
+  const resumeToken = localStorage.getItem(`${url}/lea/loginToken`)
+  if (resumeToken) {
+    callLoginMethod([ { resume: resumeToken } ])
+  } else {
+    callLoginMethod([ { lea: true, accessToken } ])
+  }
 }
 
 if (Meteor.isClient) {
   DDP.loginWithLea = loginWithLea
-  console.log("asigned", DDP)
+  console.log('asigned', DDP)
 } else {
   // Allow synchronous usage by not passing callback on server
   DDP.loginWithLea = function ddpLoginWithLea (connection, { accessToken }, callback) {
