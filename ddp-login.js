@@ -78,7 +78,6 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
 
 if (Meteor.isClient) {
   DDP.loginWithLea = loginWithLea
-  console.log('asigned', DDP)
 } else {
   // Allow synchronous usage by not passing callback on server
   DDP.loginWithLea = function ddpLoginWithLea (connection, { accessToken }, callback) {
