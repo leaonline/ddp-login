@@ -10,10 +10,18 @@ const once = fct => {
   }
 }
 
-function loginWithLea (connection, { accessToken }, callback = () => {}) {
+const log = (...args) => {
+  if (Meteor.isDevelopment) {
+    console.info('[DDP.loginWithLea]', ...args)
+  }
+}
+
+function loginWithLea (connection, { accessToken, debug }, callback = () => {}) {
   const url = connection._stream.rawUrl
   let reconnected = false
   let onceUserCallback = once(callback)
+
+  if (debug) log('login url', url)
 
   function onResultReceived (err, result) {
     if (err || !result || !result.token) {
@@ -35,6 +43,8 @@ function loginWithLea (connection, { accessToken }, callback = () => {}) {
     if (reconnected)
       return
 
+    if (debug) log(`login result received, successful = ${!!result && !error}`)
+
     if (error || !result) {
       onceUserCallback(error || new Error('No result from call to login'), null)
     } else {
@@ -48,6 +58,10 @@ function loginWithLea (connection, { accessToken }, callback = () => {}) {
   }
 
   function callLoginMethod (args) {
+    if (debug) {
+      if (args[0].accessToken) log('login with accessToken')
+      if (args[0].resume) log('login with resumeToken')
+    }
     connection.apply('login', args, {
       wait: true,
       onResultReceived: onResultReceived
