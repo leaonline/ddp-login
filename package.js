@@ -2,7 +2,7 @@
 
 Package.describe({
   name: 'leaonline:ddp-login',
-  version: '1.0.3',
+  version: '1.0.4',
   // Brief, one-line summary of the package.
   summary: 'Provide loginWithLea to a DDP connection.',
   // URL to the Git repository containing the source code for this package.
