@@ -1,5 +1,7 @@
 /* globals DDP localStorage */
-DDP = DDP || {}
+import { Meteor } from 'meteor/meteor'
+
+global.DDP = global.DDP || {}
 
 const once = fct => {
   let called = false
@@ -19,7 +21,7 @@ const log = (...args) => {
 function loginWithLea (connection, { accessToken, debug }, callback = () => {}) {
   const url = connection._stream.rawUrl
   let reconnected = false
-  let onceUserCallback = once(callback)
+  const onceUserCallback = once(callback)
 
   if (debug) log('login url', url)
 
@@ -29,7 +31,7 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
     } else {
       connection.onReconnect = function () {
         reconnected = true
-        callLoginMethod([ { resume: result.token } ])
+        callLoginMethod([{ resume: result.token }])
       }
     }
   }
@@ -40,8 +42,7 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
     // above). The onReconnect will try to log in using the token, and *it*
     // will call userCallback via its own version of this
     // loggedInAndDataReadyCallback. So we don't have to do anything here.
-    if (reconnected)
-      return
+    if (reconnected) { return }
 
     if (debug) log(`login result received, successful = ${!!result && !error}`)
 
@@ -70,9 +71,9 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
 
   const resumeToken = localStorage.getItem(`${url}/lea/loginToken`)
   if (resumeToken) {
-    callLoginMethod([ { resume: resumeToken } ])
+    callLoginMethod([{ resume: resumeToken }])
   } else {
-    callLoginMethod([ { lea: true, accessToken } ])
+    callLoginMethod([{ lea: true, accessToken }])
   }
 }
 
