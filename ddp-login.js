@@ -50,9 +50,9 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
       onceUserCallback(error || new Error('No result from call to login'), null)
     } else {
       // Logged in
-      localStorage.setItem(`${url}/lea/loginToken`, result.token)
-      localStorage.setItem(`${url}/lea/loginTokenExpires`, result.tokenExpires)
-      localStorage.setItem(`${url}/lea/userId`, result.id)
+      Meteor._localStorage.setItem(`${url}/lea/loginToken`, result.token)
+      Meteor._localStorage.setItem(`${url}/lea/loginTokenExpires`, result.tokenExpires)
+      Meteor._localStorage.setItem(`${url}/lea/userId`, result.id)
       connection.setUserId(result.id)
       onceUserCallback(null, result)
     }
@@ -69,7 +69,7 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
     }, loggedInAndDataReadyCallback)
   }
 
-  const resumeToken = localStorage.getItem(`${url}/lea/loginToken`)
+  const resumeToken = Meteor._localStorage.getItem(`${url}/lea/loginToken`)
   if (resumeToken) {
     callLoginMethod([{ resume: resumeToken }])
   } else {
