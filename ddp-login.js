@@ -1,34 +1,32 @@
-/* globals DDP localStorage */
+/* globals DDP */
 import { Meteor } from 'meteor/meteor'
+import { getUrl, once, storageKeys } from './utils'
+import { clearStorage, setStorage } from './storage'
 
 global.DDP = global.DDP || {}
 
-const once = fct => {
-  let called = false
-  return function (...args) {
-    if (called) return
-    called = true
-    return fct.call(this, ...args)
-  }
-}
-
-const log = (...args) => {
+const debugLog = (...args) => {
   if (Meteor.isDevelopment) {
-    console.info('[DDP.loginWithLea]', ...args)
+
   }
+  console.debug('[DDP.loginWithLea]', ...args)
 }
 
 function loginWithLea (connection, { accessToken, debug }, callback = () => {}) {
-  const url = connection._stream.rawUrl
-  let reconnected = false
-  const onceUserCallback = once(callback)
+  if (debug) debugLog('loginWithLea()')
 
-  if (debug) log('login url', url)
+  const url = getUrl(connection)
+  const onceUserCallback = once(callback)
+  let reconnected = false
+
+  if (debug) debugLog('login url', url)
 
   function onResultReceived (err, result) {
     if (err || !result || !result.token) {
       connection.onReconnect = null
-    } else {
+    }
+
+    else {
       connection.onReconnect = function () {
         reconnected = true
         callLoginMethod([{ resume: result.token }])
@@ -44,15 +42,17 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
     // loggedInAndDataReadyCallback. So we don't have to do anything here.
     if (reconnected) { return }
 
-    if (debug) log(`login result received, successful = ${!!result && !error}`)
+    if (debug) debugLog(`login result received, successful = ${!!result && !error}`)
 
     if (error || !result) {
+      clearStorage(url)
+      connection.setUserId(null)
       onceUserCallback(error || new Error('No result from call to login'), null)
-    } else {
-      // Logged in
-      Meteor._localStorage.setItem(`${url}/lea/loginToken`, result.token)
-      Meteor._localStorage.setItem(`${url}/lea/loginTokenExpires`, result.tokenExpires)
-      Meteor._localStorage.setItem(`${url}/lea/userId`, result.id)
+    }
+
+    // Logged in
+    else {
+      setStorage(url, result)
       connection.setUserId(result.id)
       onceUserCallback(null, result)
     }
@@ -60,32 +60,69 @@ function loginWithLea (connection, { accessToken, debug }, callback = () => {}) 
 
   function callLoginMethod (args) {
     if (debug) {
-      if (args[0].accessToken) log('login with accessToken')
-      if (args[0].resume) log('login with resumeToken')
+      if (args[0].accessToken) debugLog('login with accessToken')
+      if (args[0].resume) debugLog('login with resumeToken')
     }
     connection.apply('login', args, {
       wait: true,
-      onResultReceived: onResultReceived
+      onResultReceived
     }, loggedInAndDataReadyCallback)
   }
 
-  const resumeToken = Meteor._localStorage.getItem(`${url}/lea/loginToken`)
+  const resumeToken = Meteor._localStorage.getItem(storageKeys.loginToken(url))
+
   if (resumeToken) {
     callLoginMethod([{ resume: resumeToken }])
-  } else {
+  }
+  else {
     callLoginMethod([{ lea: true, accessToken }])
   }
 }
 
+/**
+ * @private logs the user out and clears all login data from collection and
+ * storage
+ * @param connection {DDP.Connection}
+ * @param callback {Function|undefined}
+ */
+function logout (connection, callback = () => {}) {
+  const url = getUrl(connection)
+
+  connection.apply('logout', [], { wait: true }, (error) => {
+    clearStorage(url)
+    connection.onReconnect = null
+    connection.setUserId(null)
+
+    if (error) {
+      return callback(error)
+    }
+
+    callback(undefined, true)
+  })
+}
+
 if (Meteor.isClient) {
   DDP.loginWithLea = loginWithLea
-} else {
+  DDP.logout = logout
+}
+
+else {
   // Allow synchronous usage by not passing callback on server
-  DDP.loginWithLea = function ddpLoginWithLea (connection, { accessToken }, callback) {
+  DDP.loginWithLea = function ddpLoginWithLea (connection, options, callback) {
     if (!callback) {
-      return Meteor.wrapAsync(loginWithLea)(connection, { accessToken })
-    } else {
-      return loginWithLea(connection, { accessToken }, callback)
+      return Meteor.wrapAsync(loginWithLea)(connection, options)
+    }
+    else {
+      return loginWithLea(connection, options, callback)
+    }
+  }
+
+  DDP.logout = function ddpLogout (connection, callback) {
+    if (!callback) {
+      return Meteor.wrapAsync(logout)(connection)
+    }
+    else {
+      return logout(connection, callback)
     }
   }
 }
