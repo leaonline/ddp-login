@@ -2,7 +2,7 @@
 
 Package.describe({
   name: 'leaonline:ddp-login',
-  version: '2.0.2',
+  version: '3.0.0',
   // Brief, one-line summary of the package.
   summary: 'Provide loginWithLea to a DDP connection.',
   // URL to the Git repository containing the source code for this package.
@@ -13,10 +13,8 @@ Package.describe({
 })
 
 Package.onUse(function (api) {
-  api.versionsFrom(['1.6', '2.3'])
+  api.versionsFrom(['1.6', '2.8.1', '3.0.1'])
   api.use('ecmascript')
-  api.use('livedata')
-  api.use('localstorage')
   api.addFiles('ddp-login.js')
 })
 

@@ -2,17 +2,15 @@
 import { Meteor } from 'meteor/meteor'
 import { getUrl, once, storageKeys } from './utils'
 import { clearStorage, setStorage } from './storage'
-
-global.DDP = global.DDP || {}
+import { DDP } from 'meteor/ddp-client'
 
 const debugLog = (...args) => {
   if (Meteor.isDevelopment) {
-
+    console.debug('[DDP.loginWithLea]', ...args)
   }
-  console.debug('[DDP.loginWithLea]', ...args)
 }
 
-function loginWithLea (connection, { accessToken, debug }, callback = () => {}) {
+export const loginWithLea = function loginWithLea (connection, { accessToken, debug }, callback = () => {}) {
   if (debug) debugLog('loginWithLea()')
 
   const url = getUrl(connection)
@@ -102,6 +100,7 @@ function logout (connection, callback = () => {}) {
 }
 
 if (Meteor.isClient) {
+  console.debug('[DDP.loginWithLea]', 'define login method')
   DDP.loginWithLea = loginWithLea
   DDP.logout = logout
 }
